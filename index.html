@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="utf-8" />
-    <title>Map with Multiple Routes and Dropdowns</title>
+    <title>Map with Curved Routes and Dropdowns</title>
     <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
     <link href="https://api.mapbox.com/mapbox-gl-js/v2.6.1/mapbox-gl.css" rel="stylesheet" />
     <style>
@@ -40,6 +40,8 @@
 <div id="map"></div>
 
 <script src="https://api.mapbox.com/mapbox-gl-js/v2.6.1/mapbox-gl.js"></script>
+<script src="https://api.mapbox.com/mapbox-gl-js/v2.6.1/mapbox-gl.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Turf.js/5.1.6/turf.min.js"></script>
 
 <script>
     mapboxgl.accessToken = 'pk.eyJ1IjoibWlja2U0MDQiLCJhIjoiY2xvZ2g1OGdqMDVieDJycW94MTQwdGh5NSJ9.edVMNdxtcZpEDNjAzXUfOg'; // Replace with your Mapbox access token
@@ -51,8 +53,9 @@
         zoom: 3,
     });
 
-    // Lists of cities
-    // From cities
+    // From and to cities
+    // ... (Your fromCities and toCities array as defined before)
+
 const fromCities = [
     { name: "New York", coordinates: [-74.0060, 40.7128] },
     { name: "Los Angeles", coordinates: [-118.2437, 34.0522] },
@@ -84,26 +87,35 @@ const toCities = [
     { name: "Oklahoma City", coordinates: [-97.5164, 35.4676] }
 ];
 
+    function createArc(origin, destination) {
+        const line = turf.lineString([origin, destination]);
+        const lineDistance = turf.length(line, { units: 'kilometers' });
+        const arc = [];
+        const steps = 500;
+
+        for (let i = 0; i < lineDistance; i += lineDistance / steps) {
+            const segment = turf.along(line, i, { units: 'kilometers' });
+            arc.push(segment.geometry.coordinates);
+        }
+
+        return {
+            'type': 'Feature',
+            'geometry': {
+                'type': 'LineString',
+                'coordinates': arc
+            }
+        };
+    }
+
     map.on('load', () => {
-        // Add the routes to the map as a layer
         fromCities.forEach((fromCity, fromIndex) => {
             toCities.forEach((toCity, toIndex) => {
                 const routeId = `route-${fromIndex}-${toIndex}`;
-                const route = {
-                    'type': 'Feature',
-                    'properties': {},
-                    'geometry': {
-                        'type': 'LineString',
-                        'coordinates': [
-                            fromCity.coordinates,
-                            toCity.coordinates
-                        ]
-                    }
-                };
+                const arcFeature = createArc(fromCity.coordinates, toCity.coordinates);
 
                 map.addSource(routeId, {
                     'type': 'geojson',
-                    'data': route
+                    'data': arcFeature
                 });
 
                 map.addLayer({
@@ -135,40 +147,31 @@ const toCities = [
         });
     }
 
-    // Toggle routes visibility based on dropdown selection
     function toggleRoutes(selectedIndex, type) {
         const isOrigin = type === 'origin';
 
-        // Hide all routes initially
         fromCities.forEach((fromCity, fromIndex) => {
             toCities.forEach((toCity, toIndex) => {
-                map.setLayoutProperty(`route-${fromIndex}-${toIndex}`, 'visibility', 'none');
+                const routeId = `route-${fromIndex}-${toIndex}`;
+                const visibility = selectedIndex === 'all' ? 'visible' : 'none';
+                map.setLayoutProperty(routeId, 'visibility', visibility);
             });
         });
 
-        // Then, if 'all' is selected, show all routes
-        if (selectedIndex === 'all') {
-            fromCities.forEach((fromCity, fromIndex) => {
-                toCities.forEach((toCity, toIndex) => {
-                    map.setLayoutProperty(`route-${fromIndex}-${toIndex}`, 'visibility', 'visible');
-                });
-            });
-        } else {
-            // Otherwise, show only the selected routes
-            const index = parseInt(selectedIndex);
+        if (selectedIndex !== 'all') {
+            const selectedValue = parseInt(selectedIndex);
             if (isOrigin) {
                 toCities.forEach((toCity, toIndex) => {
-                    map.setLayoutProperty(`route-${index}-${toIndex}`, 'visibility', 'visible');
+                    map.setLayoutProperty(`route-${selectedValue}-${toIndex}`, 'visibility', 'visible');
                 });
             } else {
                 fromCities.forEach((fromCity, fromIndex) => {
-                    map.setLayoutProperty(`route-${fromIndex}-${index}`, 'visibility', 'visible');
+                    map.setLayoutProperty(`route-${fromIndex}-${selectedValue}`, 'visibility', 'visible');
                 });
             }
         }
     }
 
-    // Event listeners for dropdowns
     document.getElementById('originDropdown').addEventListener('change', (event) => {
         toggleRoutes(event.target.value, 'origin');
     });
