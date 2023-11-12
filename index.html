@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Map with Multiple Routes and Dropdowns</title>
+    <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
+    <link href="https://api.mapbox.com/mapbox-gl-js/v2.6.1/mapbox-gl.css" rel="stylesheet" />
+    <style>
+        body { margin: 0; padding: 0; }
+        #map { position: absolute; top: 0; bottom: 0; width: 100%; }
+        .sidebar {
+            background-color: rgba(255, 255, 255, 0.8);
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 1;
+            padding: 10px;
+            border-radius: 3px;
+        }
+        select {
+            width: 100%;
+            padding: 5px;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+<div class="sidebar">
+    <h3>Select Origin City</h3>
+    <select id="originDropdown">
+        <option value="all">All Origins</option>
+        <!-- Options will be populated here by JavaScript -->
+    </select>
+    <h3>Select Destination City</h3>
+    <select id="destinationDropdown">
+        <option value="all">All Destinations</option>
+        <!-- Options will be populated here by JavaScript -->
+    </select>
+</div>
+<div id="map"></div>
+
+<script src="https://api.mapbox.com/mapbox-gl-js/v2.6.1/mapbox-gl.js"></script>
+
+<script>
+    mapboxgl.accessToken = 'YOUR_MAPBOX_ACCESS_TOKEN'; // Replace with your Mapbox access token
+
+    const map = new mapboxgl.Map({
+        container: 'map',
+        style: 'mapbox://styles/mapbox/streets-v11',
+        center: [-96, 37.8],
+        zoom: 3,
+    });
+
+    // Lists of cities
+    // From cities
+    const fromCities = [
+        // ... (Your fromCities array as defined before)
+    ];
+
+    // To cities
+    const toCities = [
+        // ... (Your toCities array as defined before)
+    ];
+
+    map.on('load', () => {
+        // Add the routes to the map as a layer
+        fromCities.forEach((fromCity, fromIndex) => {
+            toCities.forEach((toCity, toIndex) => {
+                const routeId = `route-${fromIndex}-${toIndex}`;
+                const route = {
+                    'type': 'Feature',
+                    'properties': {},
+                    'geometry': {
+                        'type': 'LineString',
+                        'coordinates': [
+                            fromCity.coordinates,
+                            toCity.coordinates
+                        ]
+                    }
+                };
+
+                map.addSource(routeId, {
+                    'type': 'geojson',
+                    'data': route
+                });
+
+                map.addLayer({
+                    'id': routeId,
+                    'type': 'line',
+                    'source': routeId,
+                    'layout': {
+                        'visibility': 'visible'
+                    },
+                    'paint': {
+                        'line-width': 2,
+                        'line-color': '#007cbf'
+                    }
+                });
+            });
+        });
+
+        populateDropdown('originDropdown', fromCities);
+        populateDropdown('destinationDropdown', toCities);
+    });
+
+    function populateDropdown(dropdownId, cities) {
+        const dropdown = document.getElementById(dropdownId);
+        cities.forEach((city, index) => {
+            const option = document.createElement('option');
+            option.value = index.toString();
+            option.textContent = city.name;
+            dropdown.appendChild(option);
+        });
+    }
+
+    // Toggle routes visibility based on dropdown selection
+    function toggleRoutes(selectedIndex, type) {
+        const isOrigin = type === 'origin';
+
+        // Hide all routes initially
+        fromCities.forEach((fromCity, fromIndex) => {
+            toCities.forEach((toCity, toIndex) => {
+                map.setLayoutProperty(`route-${fromIndex}-${toIndex}`, 'visibility', 'none');
+            });
+        });
+
+        // Then, if 'all' is selected, show all routes
+        if (selectedIndex === 'all') {
+            fromCities.forEach((fromCity, fromIndex) => {
+                toCities.forEach((toCity, toIndex) => {
+                    map.setLayoutProperty(`route-${fromIndex}-${toIndex}`, 'visibility', 'visible');
+                });
+            });
+        } else {
+            // Otherwise, show only the selected routes
+            const index = parseInt(selectedIndex);
+            if (isOrigin) {
+                toCities.forEach((toCity, toIndex) => {
+                    map.setLayoutProperty(`route-${index}-${toIndex}`, 'visibility', 'visible');
+                });
+            } else {
+                fromCities.forEach((fromCity, fromIndex) => {
+                    map.setLayoutProperty(`route-${fromIndex}-${index}`, 'visibility', 'visible');
+                });
+            }
+        }
+    }
+
+    // Event listeners for dropdowns
+    document.getElementById('originDropdown').addEventListener('change', (event) => {
+        toggleRoutes(event.target.value, 'origin');
+    });
+
+    document.getElementById('destinationDropdown').addEventListener('change', (event) => {
+        toggleRoutes(event.target.value, 'destination');
+    });
+</script>
+</body>
+</html>
