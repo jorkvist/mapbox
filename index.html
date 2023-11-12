@@ -53,14 +53,36 @@
 
     // Lists of cities
     // From cities
-    const fromCities = [
-        // ... (Your fromCities array as defined before)
-    ];
+const fromCities = [
+    { name: "New York", coordinates: [-74.0060, 40.7128] },
+    { name: "Los Angeles", coordinates: [-118.2437, 34.0522] },
+    { name: "Chicago", coordinates: [-87.6298, 41.8781] },
+    { name: "Houston", coordinates: [-95.3698, 29.7604] },
+    { name: "Phoenix", coordinates: [-112.0740, 33.4484] },
+    { name: "Philadelphia", coordinates: [-75.1652, 39.9526] },
+    { name: "San Antonio", coordinates: [-98.4936, 29.4241] },
+    { name: "San Diego", coordinates: [-117.1611, 32.7157] },
+    { name: "Dallas", coordinates: [-96.7970, 32.7767] },
+    { name: "San Jose", coordinates: [-121.8863, 37.3382] }
+];
 
-    // To cities
-    const toCities = [
-        // ... (Your toCities array as defined before)
-    ];
+const toCities = [
+    { name: "Austin", coordinates: [-97.7431, 30.2672] },
+    { name: "Jacksonville", coordinates: [-81.6557, 30.3322] },
+    { name: "Fort Worth", coordinates: [-97.3308, 32.7555] },
+    { name: "Columbus", coordinates: [-82.9988, 39.9612] },
+    { name: "Charlotte", coordinates: [-80.8431, 35.2271] },
+    { name: "San Francisco", coordinates: [-122.4194, 37.7749] },
+    { name: "Indianapolis", coordinates: [-86.1581, 39.7684] },
+    { name: "Seattle", coordinates: [-122.3321, 47.6062] },
+    { name: "Denver", coordinates: [-104.9903, 39.7392] },
+    { name: "Washington", coordinates: [-77.0369, 38.9072] },
+    { name: "Boston", coordinates: [-71.0589, 42.3601] },
+    { name: "El Paso", coordinates: [-106.4850, 31.7619] },
+    { name: "Nashville", coordinates: [-86.7816, 36.1627] },
+    { name: "Detroit", coordinates: [-83.0458, 42.3314] },
+    { name: "Oklahoma City", coordinates: [-97.5164, 35.4676] }
+];
 
     map.on('load', () => {
         // Add the routes to the map as a layer
