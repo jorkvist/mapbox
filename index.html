@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="utf-8" />
-    <title>zMap with Curved Routes and Dropdowns</title>
+    <title>aMap with Curved Routes and Dropdowns</title>
     <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
     <link href="https://api.mapbox.com/mapbox-gl-js/v2.6.1/mapbox-gl.css" rel="stylesheet" />
     <style>
@@ -161,28 +161,35 @@
 
     function toggleRoutes(selectedCity, type) {
         const isOrigin = type === 'origin';
-
+    
         map.getStyle().layers.forEach(layer => {
             if (layer.id.startsWith('route-')) {
-                const visibility = layer.id.includes(`route-${selectedCity}-`) === isOrigin || 
-                                   layer.id.includes(`route-${selectedCity}`) && !isOrigin || 
-                                   selectedCity === 'all' ? 'visible' : 'none';
+                let visibility = 'none';
+    
+                if (selectedCity === 'all') {
+                    visibility = 'visible';
+                } else if (isOrigin) {
+                    visibility = layer.id.includes(`route-${selectedCity}-`) ? 'visible' : 'none';
+                } else {
+                    // For destinations, check if the layer id ends with the selected city
+                    visibility = layer.id.endsWith(`-${selectedCity}`) ? 'visible' : 'none';
+                }
+    
                 map.setLayoutProperty(layer.id, 'visibility', visibility);
             }
         });
     }
+
 
     function resetDropdown(dropdownId) {
         document.getElementById(dropdownId).value = "all";
     }
     
     document.getElementById('originDropdown').addEventListener('change', (event) => {
-        resetDropdown('destinationDropdown');
         toggleRoutes(event.target.value, 'origin');
     });
     
     document.getElementById('destinationDropdown').addEventListener('change', (event) => {
-        resetDropdown('originDropdown');
         toggleRoutes(event.target.value, 'destination');
     });
 </script>
