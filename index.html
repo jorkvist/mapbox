@@ -60,7 +60,10 @@
         const lines = csvData.split('\n');
         const cities = [];
         const connections = [];
-
+        const destinationCities = new Set(); // Set for unique destination cities
+    
+        const header = lines[0].split(','); // Extract header row for city names
+    
         for (let i = 1; i < lines.length; i++) {
             const values = lines[i].split(',');
             const city = {
@@ -68,15 +71,16 @@
                 coordinates: [parseFloat(values[1]), parseFloat(values[2])]
             };
             cities.push(city);
-
+    
             for (let j = 3; j < values.length; j++) {
                 if (values[j].trim() === '1') {
-                    connections.push({ from: city.name, to: lines[0].split(',')[j].trim() });
+                    connections.push({ from: city.name, to: header[j].trim() });
+                    destinationCities.add(header[j].trim()); // Add to destination cities set
                 }
             }
         }
-
-        return { cities, connections };
+    
+        return { cities, connections, destinationCities };
     }
 
     function createArc(origin, destination) {
@@ -126,12 +130,19 @@
             const cityLookup = {};
             data.cities.forEach(city => {
                 cityLookup[city.name] = city.coordinates;
-                const option = document.createElement('option');
-                option.value = city.name;
-                option.textContent = city.name;
-                document.getElementById('originDropdown').appendChild(option);
-                document.getElementById('destinationDropdown').appendChild(option.cloneNode(true));
+                const originOption = document.createElement('option');
+                originOption.value = city.name;
+                originOption.textContent = city.name;
+                document.getElementById('originDropdown').appendChild(originOption);
             });
+    
+            data.destinationCities.forEach(cityName => {
+                const destinationOption = document.createElement('option');
+                destinationOption.value = cityName;
+                destinationOption.textContent = cityName;
+                document.getElementById('destinationDropdown').appendChild(destinationOption);
+            });
+
 
             data.connections.forEach(connection => {
                 const fromCoords = cityLookup[connection.from];
