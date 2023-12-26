@@ -182,14 +182,38 @@
 
 
     function resetDropdown(dropdownId) {
-        document.getElementById(dropdownId).value = "all";
+        const dropdown = document.getElementById(dropdownId);
+        dropdown.value = "all";
+        toggleRoutes('all', dropdownId === 'originDropdown' ? 'origin' : 'destination');
+    }
+    
+    function toggleRoutes(selectedCity, type) {
+        const isOrigin = type === 'origin';
+    
+        map.getStyle().layers.forEach(layer => {
+            if (layer.id.startsWith('route-')) {
+                let visibility = 'none';
+    
+                if (selectedCity === 'all') {
+                    visibility = 'visible';
+                } else if (isOrigin) {
+                    visibility = layer.id.includes(`route-${selectedCity}-`) ? 'visible' : 'none';
+                } else {
+                    visibility = layer.id.endsWith(`-${selectedCity}`) ? 'visible' : 'none';
+                }
+    
+                map.setLayoutProperty(layer.id, 'visibility', visibility);
+            }
+        });
     }
     
     document.getElementById('originDropdown').addEventListener('change', (event) => {
+        resetDropdown('destinationDropdown');
         toggleRoutes(event.target.value, 'origin');
     });
     
     document.getElementById('destinationDropdown').addEventListener('change', (event) => {
+        resetDropdown('originDropdown');
         toggleRoutes(event.target.value, 'destination');
     });
 </script>
