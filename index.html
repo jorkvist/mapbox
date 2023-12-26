@@ -161,11 +161,17 @@
         });
     }
 
+    function resetDropdown(dropdownId) {
+        document.getElementById(dropdownId).value = "all";
+    }
+    
     document.getElementById('originDropdown').addEventListener('change', (event) => {
+        resetDropdown('destinationDropdown');
         toggleRoutes(event.target.value, 'origin');
     });
-
+    
     document.getElementById('destinationDropdown').addEventListener('change', (event) => {
+        resetDropdown('originDropdown');
         toggleRoutes(event.target.value, 'destination');
     });
 </script>
