@@ -38,6 +38,7 @@
                         coordinates: [parseFloat(row.Longitude), parseFloat(row.Latitude)]
                     },
                     properties: {
+                        city: row.City,
                         color: row.color
                     }
                 });
@@ -57,6 +58,7 @@
                         data: geojsonData
                     });
 
+                    // Add dots layer
                     map.addLayer({
                         id: 'dots',
                         type: 'circle',
@@ -64,6 +66,21 @@
                         paint: {
                             'circle-color': ['get', 'color'],
                             'circle-radius': 5
+                        }
+                    });
+
+                    // Add labels layer
+                    map.addLayer({
+                        id: 'labels',
+                        type: 'symbol',
+                        source: 'points',
+                        layout: {
+                            'text-field': ['get', 'city'],
+                            'text-size': 12,
+                            'text-anchor': 'top'
+                        },
+                        paint: {
+                            'text-color': '#000000'
                         }
                     });
                 });
