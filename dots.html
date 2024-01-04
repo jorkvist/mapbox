@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Map with Curved Routes and Dropdowns</title>
+    <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
+    <link href="https://api.mapbox.com/mapbox-gl-js/v2.6.1/mapbox-gl.css" rel="stylesheet" />
+    <style>
+        body { margin: 0; padding: 0; }
+        #map { position: absolute; top: 0; bottom: 0; width: 100%; }
+        .sidebar {
+            background-color: rgba(255, 255, 255, 0.8);
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 1;
+            padding: 10px;
+            border-radius: 3px;
+        }
+        select {
+            width: 100%;
+            padding: 5px;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+<div class="sidebar">
+    <h3>Select Origin City</h3>
+    <select id="originDropdown">
+        <option value="all">All Origins</option>
+    </select>
+    <h3>Select Destination City</h3>
+    <select id="destinationDropdown">
+        <option value="all">All Destinations</option>
+    </select>
+</div>
+<div id="map"></div>
+
+<script src="https://api.mapbox.com/mapbox-gl-js/v2.6.1/mapbox-gl.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Turf.js/5.1.6/turf.min.js"></script>
+
+<script>
+    mapboxgl.accessToken = 'pk.eyJ1IjoibWlja2U0MDQiLCJhIjoiY2xvZ2g1OGdqMDVieDJycW94MTQwdGh5NSJ9.edVMNdxtcZpEDNjAzXUfOg'; // Replace with your Mapbox access token
+
+    const map = new mapboxgl.Map({
+        container: 'map',
+        style: 'mapbox://styles/mapbox/streets-v11',
+        center: [-96, 37.8],
+        zoom: 3,
+    });
+
+    async function fetchCitiesAndConnections() {
+        const response = await fetch('https://docs.google.com/spreadsheets/d/e/2PACX-1vSIje2qs_FA_rXpZy2s5a-0Sx0lMDo6Le13EQiRba3pNwPEusnFxCWdJBgl4knKSZPD_bhJqwihgYOA/pub?output=csv');
+        const csv = await response.text();
+        return parseCSV(csv);
+    }
+
+    function parseCSV(csvData) {
+        const lines = csvData.split('\n');
+        const cities = [];
+        const connections = [];
+        const destinationCities = new Set(); // Set for unique destination cities
+    
+        const header = lines[0].split(','); // Extract header row for city names
+    
+        for (let i = 1; i < lines.length; i++) {
+            const values = lines[i].split(',');
+            const city = {
+                name: values[0].trim(),
+                coordinates: [parseFloat(values[1]), parseFloat(values[2])]
+            };
+            cities.push(city);
+    
+            for (let j = 3; j < values.length; j++) {
+                if (values[j].trim() === '1') {
+                    connections.push({ from: city.name, to: header[j].trim() });
+                    destinationCities.add(header[j].trim()); // Add to destination cities set
+                }
+            }
+        }
+    
+        return { cities, connections, destinationCities };
+    }
+
+    function createArc(origin, destination) {
+        const line = turf.lineString([origin, destination]);
+        const lineDistance = turf.length(line, { units: 'kilometers' });
+        const arc = [];
+        const steps = 500;
+
+        for (let i = 0; i < lineDistance; i += lineDistance / steps) {
+            const segment = turf.along(line, i, { units: 'kilometers' });
+            arc.push(segment.geometry.coordinates);
+        }
+
+        return {
+            'type': 'Feature',
+            'geometry': {
+                'type': 'LineString',
+                'coordinates': arc
+            }
+        };
+    }
+
+    function addRouteToMap(fromCoords, toCoords, routeId) {
+        const arcFeature = createArc(fromCoords, toCoords);
+
+        map.addSource(routeId, {
+            'type': 'geojson',
+            'data': arcFeature
+        });
+
+        map.addLayer({
+            'id': routeId,
+            'type': 'line',
+            'source': routeId,
+            'layout': {
+                'visibility': 'visible'
+            },
+            'paint': {
+                'line-width': 2,
+                'line-color': '#002D74'
+            }
+        });
+    }
+
+    map.on('load', function() {
+        fetchCitiesAndConnections().then(data => {
+            const cityLookup = {};
+            data.cities.forEach(city => {
+                cityLookup[city.name] = city.coordinates;
+                const originOption = document.createElement('option');
+                originOption.value = city.name;
+                originOption.textContent = city.name;
+                document.getElementById('originDropdown').appendChild(originOption);
+            });
+    
+            data.destinationCities.forEach(cityName => {
+                const destinationOption = document.createElement('option');
+                destinationOption.value = cityName;
+                destinationOption.textContent = cityName;
+                document.getElementById('destinationDropdown').appendChild(destinationOption);
+            });
+
+
+            data.connections.forEach(connection => {
+                const fromCoords = cityLookup[connection.from];
+                const toCoords = cityLookup[connection.to];
+                const routeId = `route-${connection.from}-${connection.to}`;
+
+                if (!fromCoords || !toCoords) {
+                    console.warn('Missing coordinates for:', connection.from, 'or', connection.to);
+                    return; // Skip if coordinates are missing
+                }
+
+                addRouteToMap(fromCoords, toCoords, routeId);
+            });
+        });
+    });
+
+    function toggleRoutes(selectedCity, type) {
+        const isOrigin = type === 'origin';
+    
+        map.getStyle().layers.forEach(layer => {
+            if (layer.id.startsWith('route-')) {
+                let visibility = 'none';
+    
+                if (selectedCity === 'all') {
+                    visibility = 'visible';
+                } else if (isOrigin) {
+                    visibility = layer.id.includes(`route-${selectedCity}-`) ? 'visible' : 'none';
+                } else {
+                    // For destinations, check if the layer id ends with the selected city
+                    visibility = layer.id.endsWith(`-${selectedCity}`) ? 'visible' : 'none';
+                }
+    
+                map.setLayoutProperty(layer.id, 'visibility', visibility);
+            }
+        });
+    }
+
+
+    function resetDropdown(dropdownId) {
+        const dropdown = document.getElementById(dropdownId);
+        dropdown.value = "all";
+        toggleRoutes('all', dropdownId === 'originDropdown' ? 'origin' : 'destination');
+    }
+    
+    function toggleRoutes(selectedCity, type) {
+        const isOrigin = type === 'origin';
+    
+        map.getStyle().layers.forEach(layer => {
+            if (layer.id.startsWith('route-')) {
+                let visibility = 'none';
+    
+                if (selectedCity === 'all') {
+                    visibility = 'visible';
+                } else if (isOrigin) {
+                    visibility = layer.id.includes(`route-${selectedCity}-`) ? 'visible' : 'none';
+                } else {
+                    visibility = layer.id.endsWith(`-${selectedCity}`) ? 'visible' : 'none';
+                }
+    
+                map.setLayoutProperty(layer.id, 'visibility', visibility);
+            }
+        });
+    }
+    
+    document.getElementById('originDropdown').addEventListener('change', (event) => {
+        resetDropdown('destinationDropdown');
+        toggleRoutes(event.target.value, 'origin');
+    });
+    
+    document.getElementById('destinationDropdown').addEventListener('change', (event) => {
+        resetDropdown('originDropdown');
+        toggleRoutes(event.target.value, 'destination');
+    });
+</script>
+</body>
+</html>
