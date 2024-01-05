@@ -4,6 +4,7 @@
     <meta charset="utf-8" />
     <title>Map with Curved Routes and Dropdowns</title>
     <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
+    <link href='https://fonts.googleapis.com/css?family=Montserrat' rel='stylesheet'>
     <link href="https://api.mapbox.com/mapbox-gl-js/v2.6.1/mapbox-gl.css" rel="stylesheet" />
     <style>
         body { margin: 0; padding: 0; }
@@ -16,6 +17,7 @@
             z-index: 1;
             padding: 10px;
             border-radius: 3px;
+            font-family: 'Montserrat';
         }
         select {
             width: 100%;
@@ -28,9 +30,9 @@
 <div class="sidebar">
     <h3>Select Origin City</h3>
     <select id="originDropdown">
-        <option value="all">All Origins</option>
+        <option value="all">Origin</option>
     </select>
-    <h3>Select Destination City</h3>
+    <h3>Destination</h3>
     <select id="destinationDropdown">
         <option value="all">All Destinations</option>
     </select>
